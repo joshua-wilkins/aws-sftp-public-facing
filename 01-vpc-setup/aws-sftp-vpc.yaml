@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Transfer Workshop - October 2020
+Metadata:
+  License:
+    Description: |
+      Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+      Permission is hereby granted, free of charge, to any person obtaining a copy of this
+      software and associated documentation files (the "Software"), to deal in the Software
+      without restriction, including without limitation the rights to use, copy, modify,
+      merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+      permit persons to whom the Software is furnished to do so.
+
+      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+      INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+      PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+      HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+      OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+      SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Parameters:
+
+Resources:
+  # Create a dedicated VPC with internet connectivity
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.11.12.0/24
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+      - Key: Name
+        Value: TransferSFTPDemoVPC
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref 'VPC'
+      CidrBlock: 10.11.12.0/25
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      MapPublicIpOnLaunch: 'True'
+      Tags:
+      - Key: Name
+        Value: TransferSFTPDemoSubnet1
+
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref 'VPC'
+      CidrBlock: 10.11.12.128/25
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: ""
+      MapPublicIpOnLaunch: 'True'
+      Tags:
+      - Key: Name
+        Value: TransferSFTPDemoSubnet2
+
+  Subnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref 'VPC'
+      CidrBlock: 10.11.13.0/25
+      AvailabilityZone:
+        Fn::Select:
+          - 2
+          - Fn::GetAZs: ""
+      MapPublicIpOnLaunch: 'True'
+      Tags:
+        - Key: Name
+          Value: TransferSFTPDemoSubnet3
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: TransferSFTPDemoIGW
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref 'VPC'
+      InternetGatewayId: !Ref 'InternetGateway'
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref 'VPC'
+      Tags:
+      - Key: Name
+        Value: TransferSFTPDemoRouteTable
+
+  Subnet1RouteAssociaton:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'Subnet1'
+      RouteTableId: !Ref 'RouteTable'
+
+  Subnet2RouteAssociaton:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'Subnet2'
+      RouteTableId: !Ref 'RouteTable'
+
+  Subnet3RouteAssociaton:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'Subnet3'
+      RouteTableId: !Ref 'RouteTable'
+
+  RoutetoInternet:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      RouteTableId: !Ref 'RouteTable'
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref 'InternetGateway'
+
+  EIP1:
+    Type: AWS::EC2::EIP
+    DependsOn: VPC
+    Properties:
+      Domain: VPC
+
+  EIP2:
+    Type: AWS::EC2::EIP
+    DependsOn: VPC
+    Properties:
+      Domain: VPC
+
+  EIP3:
+    Type: AWS::EC2::EIP
+    DependsOn: VPC
+    Properties:
+      Domain: VPC
+
+Outputs:
+  vpcID:
+    Description: ID of VPC
+    Value: !Ref VPC
+
+  elasticIP1:
+    Description: Elastic IP 1
+    Value: !Ref EIP1
+  elasticIP2:
+    Description: Elastic IP 2
+    Value: !Ref EIP2
+  elasticIP3:
+    Description: Elastic IP 3
+    Value: !Ref EIP3
+
+  subnet1VPC:
+    Description: AZ of subnet 1
+    Value: !GetAtt Subnet1.AvailabilityZone
+  subnet1ID:
+    Description: ID of Subnet 1
+    Value: !Ref Subnet1
+
+  subnet2VPC:
+    Description: AZ of subnet 2
+    Value: !GetAtt Subnet2.AvailabilityZone
+  subnet2ID:
+    Description: ID of Subnet 2
+    Value: !Ref Subnet2
+
+  subnet3VPC:
+    Description: AZ of subnet 3
+    Value: !GetAtt Subnet3.AvailabilityZone
+  subnet3ID:
+    Description: ID of Subnet 3
+    Value: !Ref Subnet3
